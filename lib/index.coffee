@@ -68,8 +68,8 @@ module.exports = (left, right, options={}) ->
         .map((line) -> line.split '\t') # Split out left and right into a pair
         .map (line) ->
           # If the join field is null, you shouldn't actually join on it. Unfortunately, join
-          # doesn't have any concept of null since it works on text - it's treated the same as an
-          # empty string, so it joins null to null.
+          # doesn't have any concept of null since it works on text - it's treated the same as any
+          # string, so it joins null to null.
           # Thus, we need to correct these ourselves.
           if line[0] is 'null'
             results = []
