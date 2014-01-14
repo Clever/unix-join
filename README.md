@@ -15,7 +15,6 @@ npm install unix-join
 `unix-join` takes three arguments: two Readable streams of JSON objects (left and right) and an
 options object.
 Valid options are:
-* **delim** - the delimiter used in the files passed to unix-join. default **\t**
 * **type** - the type of join to perform. one of inner, left, right, full. default **inner**
 * **on** - the fields to join on. can be a string, where it uses the value of that streams from both
 streams, or an object of the form `key: val` where `key` is the field to join from in the left
