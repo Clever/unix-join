@@ -54,9 +54,9 @@ module.exports = (left, right, options={}) ->
         '-2', '1'           # ...to the first field from the right file
         '-t', options.delim # Use delim as the delimiter in input and output
       ]
-      spawn_opts.push '-a1' if options.type in ['left', 'full']
-      spawn_opts.push '-a2' if options.type in ['right', 'full']
-      spawn_opts.push file_names...
+      spawn_opts.push '-a1' if options.type in ['left', 'full'] # Keep unpaired lines from left
+      spawn_opts.push '-a2' if options.type in ['right', 'full'] # Keep unpaired lines from right
+      spawn_opts.push file_names... # Files to join
 
       # console.log "FILE NAMES:", file_names
       # console.log "SPAWN OPTS: join", spawn_opts.join ' '
