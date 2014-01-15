@@ -144,8 +144,8 @@ configs = [
 sort_pairs = (pairs) ->
   _(pairs).sortBy (pair) ->
     _(pair).chain()
-      .map((el={}) -> (el[key] for key in _(el).keys().sort()))
-      .flatten().value().join ''
+      .map((el={}) -> (JSON.stringify el[key] for key in _(el).keys().sort()))
+      .flatten().value().join ';'
 
 make_configs = (config) ->
   # If on is a string, also try the hash version of on to verify it's the same
