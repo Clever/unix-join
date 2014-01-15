@@ -26,8 +26,8 @@ partition = (stream, predicate) ->
 understream.mixin fs.createWriteStream, 'writeFile', true
 understream.mixin (test, msg) ->
   _.stream()
-    .map (obj, cb) ->
-      return setImmediate cb, null, obj if test obj
+    .each (obj, cb) ->
+      return cb() if test obj
       cb new Error msg
     .stream()
 , 'assert', true
