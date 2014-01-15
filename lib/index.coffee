@@ -84,9 +84,6 @@ module.exports = (left, right, options={}) ->
       spawn_opts.push '-a2' if options.type in ['right', 'full'] # Keep unpaired lines from right
       spawn_opts.push file_names... # Files to join
 
-      # console.log "FILE NAMES:", file_names
-      # console.log "SPAWN OPTS: join", spawn_opts.join ' '
-
       _.stream()
         .spawn('join', spawn_opts)
         .split('\n')
