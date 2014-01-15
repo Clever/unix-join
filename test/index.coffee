@@ -57,6 +57,16 @@ configs = [
   ]
 ,
   on: 'a'
+  left: BASE_LEFT.concat {a: 'undefined', b: 5}
+  right: BASE_RIGHT.concat {a: 'undefined', b: 6}
+  expected: [
+    [{a: 1, b: 2}, {a: 1, b: 3}]
+    [{a: 2, b: 3}, {a: 2, b: 4}]
+    [{a: 3, b: 4}, {a: 3, b: 5}]
+    [{a: 'undefined', b: 5}, {a: 'undefined', b: 6}]
+  ]
+,
+  on: 'a'
   left: BASE_LEFT.concat {a: null, b: 5}
   right: BASE_RIGHT.concat {a: null, b: 6}
   expected: [
