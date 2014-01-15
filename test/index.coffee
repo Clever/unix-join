@@ -5,15 +5,18 @@ join        = require '../'
 _.mixin understream.exports()
 _.mixin require 'underscore.deep'
 
+BASE_LEFT = ({a: i, b: i + 1} for i in [1..3])
+BASE_RIGHT = ({a: i, b: i + 2} for i in [1..3])
+
 configs = [
   on: 'a'
-  left: ({a: i, b: i + 1} for i in [1..3])
-  right: ({a: i, b: i + 2} for i in [1..3])
-  expected: _.zip ({a: i, b: i + 1} for i in [1..3]), ({a: i, b: i + 2} for i in [1..3])
+  left: BASE_LEFT
+  right: BASE_RIGHT
+  expected: _.zip BASE_LEFT, BASE_RIGHT
 ,
   on: 'b'
-  left: ({a: i, b: i + 1} for i in [1..3])
-  right: ({a: i, b: i + 2} for i in [1..3])
+  left: BASE_LEFT
+  right: BASE_RIGHT
   expected: [
     [{a: 1, b: 2}, null]
     [{a: 2, b: 3}, {a: 1, b: 3}]
@@ -22,8 +25,8 @@ configs = [
   ]
 ,
   on: {'a': 'b'}
-  left: ({a: i, b: i + 1} for i in [1..3])
-  right: ({a: i, b: i + 2} for i in [1..3])
+  left: BASE_LEFT
+  right: BASE_RIGHT
   expected: [
     [{a: 1, b: 2}, null]
     [{a: 2, b: 3}, null]
@@ -31,11 +34,10 @@ configs = [
     [null, {a: 2, b: 4}]
     [null, {a: 3, b: 5}]
   ]
-  type: 'full'
 ,
   on: 'a'
-  left: ({a: i, b: i + 1} for i in [1..3]).concat {a: '', b: 5}
-  right: ({a: i, b: i + 2} for i in [1..3]).concat {a: '', b: 6}
+  left: BASE_LEFT.concat {a: '', b: 5}
+  right: BASE_RIGHT.concat {a: '', b: 6}
   expected: [
     [{a: 1, b: 2}, {a: 1, b: 3}]
     [{a: 2, b: 3}, {a: 2, b: 4}]
@@ -44,8 +46,8 @@ configs = [
   ]
 ,
   on: 'a'
-  left: ({a: i, b: i + 1} for i in [1..3]).concat {a: undefined, b: 5}
-  right: ({a: i, b: i + 2} for i in [1..3]).concat {a: undefined, b: 6}
+  left: BASE_LEFT.concat {a: undefined, b: 5}
+  right: BASE_RIGHT.concat {a: undefined, b: 6}
   expected: [
     [{b: 5}, null]
     [null, {b: 6}]
@@ -55,8 +57,8 @@ configs = [
   ]
 ,
   on: 'a'
-  left: ({a: i, b: i + 1} for i in [1..3]).concat {a: null, b: 5}
-  right: ({a: i, b: i + 2} for i in [1..3]).concat {a: null, b: 6}
+  left: BASE_LEFT.concat {a: null, b: 5}
+  right: BASE_RIGHT.concat {a: null, b: 6}
   expected: [
     [{a: null, b: 5}, null]
     [null, {a: null, b: 6}]
@@ -66,8 +68,8 @@ configs = [
   ]
 ,
   on: 'a'
-  left: ({a: i, b: i + 1} for i in [1..3]).concat {b: 5}
-  right: ({a: i, b: i + 2} for i in [1..3]).concat {b: 6}
+  left: BASE_LEFT.concat {b: 5}
+  right: BASE_RIGHT.concat {b: 6}
   expected: [
     [{b: 5}, null]
     [null, {b: 6}]
@@ -76,9 +78,9 @@ configs = [
     [{a: 3, b: 4}, {a: 3, b: 5}]
   ]
 ,
-  on: {'a': 'a'}
-  left: ({a: i, b: i + 1} for i in [1..3]).concat {a: null, b: 5}
-  right: ({a: i, b: i + 2} for i in [1..3]).concat {a: null, b: 6}, {a: null, b: 7}
+  on: 'a'
+  left: BASE_LEFT.concat {a: null, b: 5}
+  right: BASE_RIGHT.concat {a: null, b: 6}, {a: null, b: 7}
   expected: [
     [{a: null, b: 5}, null]
     [null, {a: null, b: 6}]
@@ -103,25 +105,16 @@ describe 'joins', ->
       mod_configs = _(mod_configs).chain()
         .map (mod_config) ->
           # If we don't specify type, generate an expected array for each type based on the original
-          left = _(mod_config).deepClone()
-          left.expected = _(left.expected).chain()
-            .deepClone()
-            .filter((expected_pair) -> expected_pair[0]?).value()
-          left.type = 'left'
-          right = _(mod_config).deepClone()
-          right.expected = _(right.expected).chain()
-            .deepClone()
-            .filter((expected_pair) -> expected_pair[1]?).value()
-          right.type = 'right'
-          inner = _(mod_config).deepClone()
-          inner.expected = _(inner.expected).chain()
-            .deepClone()
-            .filter((expected_pair) -> expected_pair[0]? and expected_pair[1]?).value()
-          inner.type = 'inner'
-          full = _(mod_config).deepClone()
-          full.expected = _(full.expected).deepClone()
-          full.type = 'full'
-          [left, right, inner, full]
+          config_spec =
+            left: (expected_pair) -> expected_pair[0]?
+            right: (expected_pair) -> expected_pair[1]?
+            inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
+            full: -> true
+          _(config_spec).map (filter, type) ->
+            new_config = _(mod_config).deepClone()
+            new_config.expected = _(new_config.expected).filter filter
+            new_config.type = type
+            new_config
         .flatten()
         .value()
     _(mod_configs).each (mod_config, j) ->
