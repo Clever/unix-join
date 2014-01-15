@@ -9,10 +9,13 @@ understream   = require 'understream'
 _.mixin understream.exports()
 _.mixin require('underscore.string').exports()
 
-delimmed_key_and_obj = (key, delim, obj) ->
+# This function is synchronous, but the only way that map exposes to return an error is via
+# an asynchronous callback
+delimmed_key_and_obj = (key, delim, obj, cb) ->
+  return cb new Error "join key '#{key}' was not a primitive" if _(obj[key]).isObject()
   # obj[key] is guaranteed to exist because we filtered out ones where it doesn't earlier
   hash = JSON.stringify obj[key]
-  hash + delim + JSON.stringify(obj) + '\n'
+  cb null, hash + delim + JSON.stringify(obj) + '\n'
 
 negate = (predicate) -> (args...) -> not predicate args...
 
@@ -63,7 +66,7 @@ module.exports = (left, right, options={}) ->
             .run cb_p
         (cb_p) ->
           _(have_join_key).stream()
-            .map((obj) -> delimmed_key_and_obj key, options.delim, obj)
+            .map((obj, cb) -> setImmediate delimmed_key_and_obj, key, options.delim, obj, cb)
             .writeFile(file_name)
             .run cb_p
       ], (err) ->

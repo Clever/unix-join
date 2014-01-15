@@ -128,6 +128,11 @@ configs = [
   left: BASE_LEFT.concat {a: '3'}
   right: BASE_RIGHT
   expected: _.zip(BASE_LEFT, BASE_RIGHT).concat [[{a: '3'}, null]]
+,
+  on: 'a'
+  left: [{a: {some_key: 'some_val'}}]
+  right: []
+  error: "join key 'a' was not a primitive"
 ]
 
 # For consistency, sort pairs by the values of the keys of the pairs, in alphabetical order
@@ -139,6 +144,7 @@ sort_pairs = (pairs) ->
 
 describe 'joins', ->
   _(configs).each (config, i) ->
+    return if config.error
     # If on is a string, also try the hash version of on to verify it's the same
     if _(config.on).isString()
       mod_configs = [_(config).deepClone(), _(config).deepClone()]
@@ -169,3 +175,11 @@ describe 'joins', ->
           assert.ifError err
           assert.deepEqual sort_pairs(results), sort_pairs(mod_config.expected)
           done()
+  _(configs).each (config, i) ->
+    return unless config.error
+    test_num = "#{i + 1}.1"
+    it "fails on config ##{test_num} - #{JSON.stringify config}", (done) ->
+      [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
+      _(join left, right, {on: config.on, type: config.type}).stream().run (err, results) ->
+        assert.equal err?.message, config.error
+        done()
