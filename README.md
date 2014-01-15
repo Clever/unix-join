@@ -5,7 +5,7 @@ This allows joining of very large data sets in a stream interface that Node norm
 due to memory constraints.
 
 **NOTE**: `unix-join`, like the join command that it relies on, assumes that the inputs are sorted
-by the join key. If they are not sorted, the behavior is undefined.
+by the join key. If they are not sorted, the behavior is undefined. The output is unordered.
 
 ## Install
 
