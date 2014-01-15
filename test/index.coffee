@@ -78,6 +78,16 @@ configs = [
   ]
 ,
   on: 'a'
+  left: BASE_LEFT.concat {a: 'null', b: 5}
+  right: BASE_RIGHT.concat {a: 'null', b: 6}
+  expected: [
+    [{a: 'null', b: 5}, {a: 'null', b: 6}]
+    [{a: 1, b: 2}, {a: 1, b: 3}]
+    [{a: 2, b: 3}, {a: 2, b: 4}]
+    [{a: 3, b: 4}, {a: 3, b: 5}]
+  ]
+,
+  on: 'a'
   left: BASE_LEFT.concat {b: 5}
   right: BASE_RIGHT.concat {b: 6}
   expected: [
@@ -99,6 +109,25 @@ configs = [
     [null, {a: null, b: 6}]
     [null, {a: null, b: 7}]
   ]
+,
+  on: 'a'
+  left: BASE_LEFT
+  right: []
+  expected: [
+    [{a: 1, b: 2}, null]
+    [{a: 2, b: 3}, null]
+    [{a: 3, b: 4}, null]
+  ]
+,
+  on: 'a'
+  left: []
+  right: []
+  expected: []
+,
+  on: 'a'
+  left: BASE_LEFT.concat {a: '3'}
+  right: BASE_RIGHT
+  expected: _.zip(BASE_LEFT, BASE_RIGHT).concat [[{a: '3'}, null]]
 ]
 
 # For consistency, sort pairs by the values of the keys of the pairs, in alphabetical order
