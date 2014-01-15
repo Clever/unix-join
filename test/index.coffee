@@ -139,7 +139,7 @@ sort_pairs = (pairs) ->
 
 describe 'joins', ->
   _(configs).each (config, i) ->
-    # # If on is a string, also try the hash version of on to verify it's the same
+    # If on is a string, also try the hash version of on to verify it's the same
     if _(config.on).isString()
       mod_configs = [_(config).deepClone(), _(config).deepClone()]
       mod_configs[1].on = _.object config.on, config.on
