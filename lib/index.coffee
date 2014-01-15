@@ -24,6 +24,13 @@ partition = (stream, predicate) ->
    _.stream(stream).filter(negate predicate).stream()]
 
 understream.mixin fs.createWriteStream, 'writeFile', true
+understream.mixin (test, msg) ->
+  _.stream()
+    .map (obj, cb) ->
+      return setImmediate cb, null, obj if test obj
+      cb new Error msg
+    .stream()
+, 'assert', true
 
 # join reference: http://www.albany.edu/~ig4895/join.htm
 module.exports = (left, right, options={}) ->
@@ -50,6 +57,7 @@ module.exports = (left, right, options={}) ->
       async.parallel [
         (cb_p) ->
           _(dont_have_join_key).stream()
+            .assert(_.isObject, 'received non-object in stream')
             # The other stream gets stringified and parsed since it goes to disk - do so here as
             # well for consistency
             .map((obj) -> JSON.stringify obj)
@@ -63,12 +71,13 @@ module.exports = (left, right, options={}) ->
             # would need to be handled if we wanted to do it (which we don't because it adds
             # unnecessary complexity)
             .each((obj) -> out.push obj)
-            .run cb_p
+            .run (err) -> cb_p err
         (cb_p) ->
           _(have_join_key).stream()
+            .assert(_.isObject, 'received non-object in stream')
             .map((obj, cb) -> setImmediate delimmed_key_and_obj, key, options.delim, obj, cb)
             .writeFile(file_name)
-            .run cb_p
+            .run (err) -> cb_p err
       ], (err) ->
         return cb_m err if err
         cb_m null, file_name

@@ -133,6 +133,11 @@ configs = [
   left: [{a: {some_key: 'some_val'}}]
   right: []
   error: "join key 'a' was not a primitive"
+,
+  on: 'a'
+  left: [4, 5]
+  right: [1, 2]
+  error: 'received non-object in stream'
 ]
 
 # For consistency, sort pairs by the values of the keys of the pairs, in alphabetical order
