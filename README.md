@@ -4,6 +4,9 @@ Join streams of JSON objects using the unix join command.
 This allows joining of very large data sets in a stream interface that Node normally can't handle
 due to memory constraints.
 
+**NOTE**: `unix-join`, like the join command that it relies on, assumes that the inputs are sorted
+by the join key. If they are not sorted, the behavior is undefined.
+
 ## Install
 
 ```

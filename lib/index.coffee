@@ -43,9 +43,6 @@ module.exports = (left, right, options={}) ->
     ([stream, type], cb_m) ->
       key = options.on[type]
       file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
-      # TODO: Must sort streams on the same key that we're joining on
-      # "When the field delimiter characters are specified by the -t option, the collating sequence
-      # should be the same as sort(1) without the -b option."
       [have_join_key, dont_have_join_key] = partition stream, (obj) -> obj[key]?
       async.parallel [
         (cb_p) ->
