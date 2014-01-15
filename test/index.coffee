@@ -82,14 +82,20 @@ configs = [
   left: BASE_LEFT.concat {a: null, b: 5}
   right: BASE_RIGHT.concat {a: null, b: 6}, {a: null, b: 7}
   expected: [
-    [{a: null, b: 5}, null]
-    [null, {a: null, b: 6}]
-    [null, {a: null, b: 7}]
     [{a: 1, b: 2}, {a: 1, b: 3}]
     [{a: 2, b: 3}, {a: 2, b: 4}]
     [{a: 3, b: 4}, {a: 3, b: 5}]
+    [{a: null, b: 5}, null]
+    [null, {a: null, b: 6}]
+    [null, {a: null, b: 7}]
   ]
 ]
+
+sort_pairs = (pairs) ->
+  _(pairs).sortBy (pair) ->
+    [left, right] = pair
+    [left_keys, right_keys] = _(pair).map (el = {}) -> _.keys el # el can be null
+    (left[key] for key in left_keys.sort()).concat(right[key] for key in right_keys.sort()).join ''
 
 describe 'joins', ->
   _(configs).each (config, i) ->
@@ -121,5 +127,5 @@ describe 'joins', ->
         [left, right] = _([mod_config.left, mod_config.right]).map (arr) -> _(arr).stream().stream()
         _(join left, right, {on: mod_config.on, type: mod_config.type}).stream().run (err, results) ->
           assert.ifError err
-          assert.deepEqual results, mod_config.expected
+          assert.deepEqual sort_pairs(results), sort_pairs(mod_config.expected)
           done()
