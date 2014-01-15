@@ -95,26 +95,24 @@ describe 'joins', ->
   _(configs).each (config, i) ->
     # # If on is a string, also try the hash version of on to verify it's the same
     if _(config.on).isString()
-      mod_configs = [_.deepClone(config), _.deepClone(config)]
+      mod_configs = [_(config).deepClone(), _(config).deepClone()]
       mod_configs[1].on = _.object config.on, config.on
     else
-      mod_configs = [config]
-    # If type isn't specified, assume that it's for type=full and create tests for the other types
-    # by filtering the expected array
+      mod_configs = [_(config).deepClone()]
+    # If type isn't specified, assume that the expected values are for type=full and create tests
+    # for the other types by filtering it
     unless config.type
       mod_configs = _(mod_configs).chain()
         .map (mod_config) ->
           # If we don't specify type, generate an expected array for each type based on the original
-          config_spec =
+          type_spec =
             left: (expected_pair) -> expected_pair[0]?
             right: (expected_pair) -> expected_pair[1]?
             inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
             full: -> true
-          _(config_spec).map (filter, type) ->
+          _(type_spec).map (filter, type) ->
             new_config = _(mod_config).deepClone()
-            new_config.expected = _(new_config.expected).filter filter
-            new_config.type = type
-            new_config
+            _(new_config).extend {type}, expected: _(new_config.expected).filter filter
         .flatten()
         .value()
     _(mod_configs).each (mod_config, j) ->
