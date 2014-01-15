@@ -101,11 +101,12 @@ configs = [
   ]
 ]
 
+# For consistency, sort pairs by the values of the keys of the pairs, in alphabetical order
 sort_pairs = (pairs) ->
   _(pairs).sortBy (pair) ->
-    [left, right] = pair
-    [left_keys, right_keys] = _(pair).map (el = {}) -> _.keys el # el can be null
-    (left[key] for key in left_keys.sort()).concat(right[key] for key in right_keys.sort()).join ''
+    _(pair).chain()
+      .map((el={}) -> (el[key] for key in _(el).keys().sort()))
+      .flatten().value().join ''
 
 describe 'joins', ->
   _(configs).each (config, i) ->
