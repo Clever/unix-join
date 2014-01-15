@@ -59,8 +59,9 @@ module.exports = (left, right, options={}) ->
             .filter((obj) -> options.type is 'full' or type is options.type)
             .map((obj) -> if type is 'left' then [obj, null] else [null, obj])
             # Don't just pipe into out because we also pipe into out later and node streams don't
-            # handle multiple sources for a stream very well - see understream.combine for how it
-            # would need to be handled
+            # handle multiple sources for a stream very well. See understream.combine for how it
+            # would need to be handled if we wanted to do it (which we don't because it adds
+            # unnecessary complexity)
             .each((obj) -> out.push obj)
             .run cb_p
         (cb_p) ->
