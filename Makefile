@@ -15,7 +15,7 @@ lib-js/%.js : lib/%.coffee
 test: $(TESTS)
 
 $(TESTS): build
-	DEBUG=* NODE_ENV=test node_modules/mocha/bin/mocha --timeout 60000 --compilers coffee:coffee-script test/$@.coffee
+	DEBUG=us:progress NODE_ENV=test node_modules/mocha/bin/mocha --timeout 60000 --compilers coffee:coffee-script test/$@.coffee
 
 test-cov: build
 	# jscoverage only accepts directory arguments so have to rebuild everything
