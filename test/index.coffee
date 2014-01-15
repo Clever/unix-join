@@ -147,31 +147,35 @@ sort_pairs = (pairs) ->
       .map((el={}) -> (el[key] for key in _(el).keys().sort()))
       .flatten().value().join ''
 
+make_configs = (config) ->
+  # If on is a string, also try the hash version of on to verify it's the same
+  if not _(config.on).isString()
+    mod_configs = [_(config).deepClone()]
+  else
+    mod_configs = [_(config).deepClone(), _(config).deepClone()]
+    mod_configs[1].on = _.object config.on, config.on
+  return mod_configs if config.type
+  # If type isn't specified, assume that the expected values are for type=full and create tests
+  # for the other types by filtering it
+  mod_configs = _(mod_configs).chain()
+    .map (mod_config) ->
+      # If we don't specify type, generate an expected array for each type based on the original
+      type_spec =
+        left: (expected_pair) -> expected_pair[0]?
+        right: (expected_pair) -> expected_pair[1]?
+        inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
+        full: -> true
+      _(type_spec).map (filter, type) ->
+        new_config = _(mod_config).deepClone()
+        _(new_config).extend {type},
+          if new_config.expected then {expected: _(new_config.expected).filter filter} else {}
+    .flatten()
+    .value()
+
 describe 'joins', ->
   _(configs).each (config, i) ->
     return if config.error
-    # If on is a string, also try the hash version of on to verify it's the same
-    if _(config.on).isString()
-      mod_configs = [_(config).deepClone(), _(config).deepClone()]
-      mod_configs[1].on = _.object config.on, config.on
-    else
-      mod_configs = [_(config).deepClone()]
-    # If type isn't specified, assume that the expected values are for type=full and create tests
-    # for the other types by filtering it
-    unless config.type
-      mod_configs = _(mod_configs).chain()
-        .map (mod_config) ->
-          # If we don't specify type, generate an expected array for each type based on the original
-          type_spec =
-            left: (expected_pair) -> expected_pair[0]?
-            right: (expected_pair) -> expected_pair[1]?
-            inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
-            full: -> true
-          _(type_spec).map (filter, type) ->
-            new_config = _(mod_config).deepClone()
-            _(new_config).extend {type}, expected: _(new_config.expected).filter filter
-        .flatten()
-        .value()
+    mod_configs = make_configs config
     _(mod_configs).each (mod_config, j) ->
       test_num = "#{i + 1}.#{j + 1}"
       it "joins config ##{test_num} - #{JSON.stringify mod_config}", (done) ->
@@ -182,9 +186,11 @@ describe 'joins', ->
           done()
   _(configs).each (config, i) ->
     return unless config.error
-    test_num = "#{i + 1}.1"
-    it "fails on config ##{test_num} - #{JSON.stringify config}", (done) ->
-      [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
-      _(join left, right, {on: config.on, type: config.type}).stream().run (err, results) ->
-        assert.equal err?.message, config.error
-        done()
+    mod_configs = make_configs config
+    _(mod_configs).each (mod_config, j) ->
+      test_num = "#{i + 1}.#{j + 1}"
+      it "fails on config ##{test_num} - #{JSON.stringify config}", (done) ->
+        [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
+        _(join left, right, {on: config.on, type: config.type}).stream().run (err, results) ->
+          assert.equal err?.message, config.error
+          done()
