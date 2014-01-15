@@ -31,6 +31,7 @@ configs = [
     [null, {a: 2, b: 4}]
     [null, {a: 3, b: 5}]
   ]
+  type: 'full'
 ,
   on: 'a'
   left: ({a: i, b: i + 1} for i in [1..3]).concat {a: '', b: 5}
@@ -46,47 +47,45 @@ configs = [
   left: ({a: i, b: i + 1} for i in [1..3]).concat {a: undefined, b: 5}
   right: ({a: i, b: i + 2} for i in [1..3]).concat {a: undefined, b: 6}
   expected: [
+    [{b: 5}, null]
+    [null, {b: 6}]
     [{a: 1, b: 2}, {a: 1, b: 3}]
     [{a: 2, b: 3}, {a: 2, b: 4}]
     [{a: 3, b: 4}, {a: 3, b: 5}]
-    [{b: 5}, null]
-    [null, {b: 6}]
   ]
 ,
   on: 'a'
   left: ({a: i, b: i + 1} for i in [1..3]).concat {a: null, b: 5}
   right: ({a: i, b: i + 2} for i in [1..3]).concat {a: null, b: 6}
   expected: [
+    [{a: null, b: 5}, null]
+    [null, {a: null, b: 6}]
     [{a: 1, b: 2}, {a: 1, b: 3}]
     [{a: 2, b: 3}, {a: 2, b: 4}]
     [{a: 3, b: 4}, {a: 3, b: 5}]
-    [{a: null, b: 5}, null]
-    [null, {a: null, b: 6}]
   ]
 ,
   on: 'a'
   left: ({a: i, b: i + 1} for i in [1..3]).concat {b: 5}
   right: ({a: i, b: i + 2} for i in [1..3]).concat {b: 6}
   expected: [
+    [{b: 5}, null]
+    [null, {b: 6}]
     [{a: 1, b: 2}, {a: 1, b: 3}]
     [{a: 2, b: 3}, {a: 2, b: 4}]
     [{a: 3, b: 4}, {a: 3, b: 5}]
-    [{b: 5}, null]
-    [null, {b: 6}]
   ]
 ,
-  # Test case currently fails because the commented out expected one exists
   on: {'a': 'a'}
   left: ({a: i, b: i + 1} for i in [1..3]).concat {a: null, b: 5}
   right: ({a: i, b: i + 2} for i in [1..3]).concat {a: null, b: 6}, {a: null, b: 7}
   expected: [
+    [{a: null, b: 5}, null]
+    [null, {a: null, b: 6}]
+    [null, {a: null, b: 7}]
     [{a: 1, b: 2}, {a: 1, b: 3}]
     [{a: 2, b: 3}, {a: 2, b: 4}]
     [{a: 3, b: 4}, {a: 3, b: 5}]
-    [{a: null, b: 5}, null]
-    [null, {a: null, b: 6}]
-    # [{a: null, b: 5}, null]
-    [null, {a: null, b: 7}]
   ]
 ]
 
@@ -131,6 +130,5 @@ describe 'joins', ->
         [left, right] = _([mod_config.left, mod_config.right]).map (arr) -> _(arr).stream().stream()
         _(join left, right, {on: mod_config.on, type: mod_config.type}).stream().run (err, results) ->
           assert.ifError err
-          console.log results
           assert.deepEqual results, mod_config.expected
           done()
