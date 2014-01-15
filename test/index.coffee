@@ -174,23 +174,16 @@ make_configs = (config) ->
 
 describe 'joins', ->
   _(configs).each (config, i) ->
-    return if config.error
-    mod_configs = make_configs config
-    _(mod_configs).each (mod_config, j) ->
+    _(make_configs config).each (mod_config, j) ->
       test_num = "#{i + 1}.#{j + 1}"
-      it "joins config ##{test_num} - #{JSON.stringify mod_config}", (done) ->
-        [left, right] = _([mod_config.left, mod_config.right]).map (arr) -> _(arr).stream().stream()
-        _(join left, right, {on: mod_config.on, type: mod_config.type}).stream().run (err, results) ->
+      if config.error
+        asserts = (err, results) -> assert.equal err?.message, config.error
+      else
+        asserts = (err, results) ->
           assert.ifError err
           assert.deepEqual sort_pairs(results), sort_pairs(mod_config.expected)
-          done()
-  _(configs).each (config, i) ->
-    return unless config.error
-    mod_configs = make_configs config
-    _(mod_configs).each (mod_config, j) ->
-      test_num = "#{i + 1}.#{j + 1}"
-      it "fails on config ##{test_num} - #{JSON.stringify config}", (done) ->
+      it "##{test_num} #{if config.error then 'fails' else 'joins'} #{JSON.stringify mod_config}", (done) ->
         [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
-        _(join left, right, {on: config.on, type: config.type}).stream().run (err, results) ->
-          assert.equal err?.message, config.error
+        _(join left, right, {on: mod_config.on, type: mod_config.type}).stream().run (err, results) ->
+          asserts err, results
           done()
