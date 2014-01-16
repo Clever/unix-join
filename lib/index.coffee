@@ -32,7 +32,7 @@ module.exports = (left, right, options={}) ->
   join_keys = if _(options.on).isObject() then _(options.on).pairs()[0] else [options.on, options.on]
   options.on = _.object ['left', 'right'], join_keys
 
-  head = new PassThrough objectMode: true
+  out = _.stream().map((line) -> _(line).map JSON.parse).stream() # Parse each object in the pair
   file_names = []
   streams = []
   _([[left, 'left'], [right, 'right']]).each ([stream, stream_type]) ->
@@ -50,11 +50,11 @@ module.exports = (left, right, options={}) ->
       .filter(-> options.type is 'full' or stream_type is options.type)
       # The string null gets turned into actual null later when these are parsed
       .map((obj) -> if stream_type is 'left' then [obj, 'null'] else ['null', obj])
-      # Don't just pipe into head because we also pipe into head later and node streams don't
+      # Don't just pipe into out because we also pipe into out later and node streams don't
       # handle multiple sources for a stream very well. See understream.combine for how it
       # would need to be handled if we wanted to do it (which we don't because it adds
       # unnecessary complexity)
-      .each (obj) -> head.push obj
+      .each (obj, cb) -> out.write obj, cb
 
     streams.push _(have_join_key).stream()
       .map ([key, obj], cb) ->
@@ -68,7 +68,7 @@ module.exports = (left, right, options={}) ->
     file_names.push file_name
 
   async.each streams, ((stream, cb_e) -> stream.run cb_e), (err) ->
-    return head.emit 'error', err if err
+    return out.emit 'error', err if err
     spawn_opts = [
       '-o', '1.2,2.2'     # Display only the stringified objects
       '-e', 'null'        # Replace any missing data fields with null
@@ -85,8 +85,8 @@ module.exports = (left, right, options={}) ->
       .split('\n')
       .filter((line) -> line) # Filter out trailing newline
       .map((line) -> line.split options.delim) # Split out left and right into a pair
-      .pipe(head)
+      .pipe(out)
       .run (err) ->
         async.each file_names, rimraf, -> # Swallow errors from deleting files
-        head.emit 'error', err if err
-  _(head).stream().map((line) -> _(line).map JSON.parse).stream() # Parse each object in the pair
+        out.emit 'error', err if err
+  out
