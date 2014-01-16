@@ -49,11 +49,11 @@ module.exports = (left, right, options={}) ->
     ([stream, stream_type], cb_m) ->
       key = options.on[stream_type]
       file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
-      [have_join_key, dont_have_join_key] = partition stream, (obj) -> obj[key]?
+      validated = _(stream).stream().assert(_.isObject, 'received non-object in stream').stream()
+      [have_join_key, dont_have_join_key] = partition validated, (obj) -> obj[key]?
       async.parallel [
         (cb_p) ->
           _(dont_have_join_key).stream()
-            .assert(_.isObject, 'received non-object in stream')
             # The other stream gets stringified and parsed since it goes to disk - do so here as
             # well for consistency
             .map((obj) -> JSON.stringify obj)
@@ -70,7 +70,6 @@ module.exports = (left, right, options={}) ->
             .run (err) -> cb_p err
         (cb_p) ->
           _(have_join_key).stream()
-            .assert(_.isObject, 'received non-object in stream')
             .map((obj, cb) -> setImmediate delimmed_key_and_obj, key, options.delim, obj, cb)
             .writeFile(file_name)
             .run (err) -> cb_p err
