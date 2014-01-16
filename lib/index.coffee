@@ -42,8 +42,6 @@ module.exports = (left, right, options={}) ->
   options.on = _.object ['left', 'right'], join_keys
 
   head = new PassThrough objectMode: true
-  out = _(head).stream().map((line) -> _(line).map JSON.parse).stream() # Parse each object in the pair
-
   file_names = []
   streams = []
   _([[left, 'left'], [right, 'right']]).each ([stream, stream_type]) ->
@@ -95,4 +93,4 @@ module.exports = (left, right, options={}) ->
       .run (err) ->
         async.each file_names, rimraf, -> # Swallow errors from deleting files
         head.emit 'error', err if err
-  out
+  _(head).stream().map((line) -> _(line).map JSON.parse).stream() # Parse each object in the pair
