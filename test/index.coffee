@@ -8,7 +8,7 @@ _.mixin require 'underscore.deep'
 BASE_LEFT = ({a: i, b: i + 1} for i in [1..3])
 BASE_RIGHT = ({a: i, b: i + 2} for i in [1..3])
 
-configs = [
+BASE_CONFIGS = [
   on: 'a'
   left: BASE_LEFT
   right: BASE_RIGHT
@@ -147,14 +147,14 @@ sort_pairs = (pairs) ->
       .map((el={}) -> (JSON.stringify el[key] for key in _(el).keys().sort()))
       .flatten().value().join ';'
 
-make_configs = (config) ->
-  mod_configs = [config]
+create_configs_from_base = (config) ->
+  new_configs = [config]
   # If on is a string, also try the hash version of on to verify it's the same
-  mod_configs.push _.extend {}, config, {on: _.object config.on, config.on} if _(config.on).isString()
-  # If type isn't specified, assume that the expected values are for type=full and create tests
-  # for the other types by filtering it
-  mod_configs = _(mod_configs).chain()
-    .map (mod_config) ->
+  new_configs.push _.extend {}, config, {on: _.object config.on, config.on} if _(config.on).isString()
+  # The expected values are for type=full. Create tests for the other types by filtering the
+  # expected values
+  new_configs = _(new_configs).chain()
+    .map (new_config) ->
       # If we don't specify type, generate an expected array for each type based on the original
       type_spec =
         left: (expected_pair) -> expected_pair[0]?
@@ -162,23 +162,23 @@ make_configs = (config) ->
         inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
         full: -> true
       _(type_spec).map (filter, type) ->
-        _.extend {}, mod_config, {type},
-          if mod_config.expected then {expected: _(mod_config.expected).filter filter} else {}
+        _.extend {}, new_config, {type},
+          if new_config.expected then {expected: _(new_config.expected).filter filter} else {}
     .flatten()
     .value()
 
 describe 'joins', ->
-  _(configs).each (config, i) ->
-    _(make_configs config).each (mod_config, j) ->
+  _(BASE_CONFIGS).each (base_config, i) ->
+    _(create_configs_from_base base_config).each (config, j) ->
       test_num = "#{i + 1}.#{j + 1}"
       if config.error
         asserts = (err, results) -> assert.equal err?.message, config.error
       else
         asserts = (err, results) ->
           assert.ifError err
-          assert.deepEqual sort_pairs(results), sort_pairs(mod_config.expected)
-      it "##{test_num} #{if config.error then 'fails' else 'joins'} #{JSON.stringify mod_config}", (done) ->
+          assert.deepEqual sort_pairs(results), sort_pairs(config.expected)
+      it "##{test_num} #{if config.error then 'fails' else 'joins'} #{JSON.stringify config}", (done) ->
         [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
-        _(join left, right, {on: mod_config.on, type: mod_config.type}).stream().run (err, results) ->
+        _(join left, right, _(config).pick 'on', 'type').stream().run (err, results) ->
           asserts err, results
           done()
