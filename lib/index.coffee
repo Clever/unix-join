@@ -84,7 +84,7 @@ module.exports = (left, right, options={}) ->
       .spawn('join', spawn_opts)
       .split('\n')
       .filter((line) -> line) # Filter out trailing newline
-      .map((line) -> line.split '\t') # Split out left and right into a pair
+      .map((line) -> line.split options.delim) # Split out left and right into a pair
       .pipe(head)
       .run (err) ->
         async.each file_names, rimraf, -> # Swallow errors from deleting files
