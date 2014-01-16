@@ -39,12 +39,8 @@ module.exports = (left, right, options={}) ->
   for required in ['delim', 'type', 'on'] when not options[required]
     throw new Error "missing option '#{required}'"
 
-  if _(options.on).isObject()
-    left_on = _(options.on).keys()[0]
-    right_on = _(options.on).values()[0]
-  else
-    left_on = right_on = options.on
-  options.on = left: left_on, right: right_on
+  join_keys = if _(options.on).isObject() then _(options.on).pairs()[0] else [options.on, options.on]
+  options.on = _.object ['left', 'right'], join_keys
 
   out = new PassThrough objectMode: true
 
