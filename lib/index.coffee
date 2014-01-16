@@ -11,11 +11,10 @@ _.mixin require('underscore.string').exports()
 
 # This function is synchronous, but the only way that map exposes to return an error is via
 # an asynchronous callback
-delimmed_key_and_obj = (key, delim, obj, cb) ->
-  return cb new Error "join key '#{key}' was not a primitive" if _(obj[key]).isObject()
-  # obj[key] is guaranteed to exist because we filtered out ones where it doesn't earlier
-  hash = JSON.stringify obj[key]
-  cb null, hash + delim + JSON.stringify(obj) + '\n'
+delimmed_key_and_obj = (field, delim, [key, obj], cb) ->
+  return cb new Error "join key '#{field}' was not a primitive" if _(key).isObject()
+  hash = JSON.stringify key
+  cb null, hash + delim + obj + '\n'
 
 negate = (predicate) -> (args...) -> not predicate args...
 
@@ -49,14 +48,15 @@ module.exports = (left, right, options={}) ->
   _([[left, 'left'], [right, 'right']]).each ([stream, stream_type]) ->
     key = options.on[stream_type]
     file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
-    validated = _(stream).stream().assert(_.isObject, 'received non-object in stream').stream()
-    [have_join_key, dont_have_join_key] = partition validated, (obj) -> obj[key]?
+    validated = _(stream).stream().assert(_.isObject, 'received non-object in stream')
+      .map((obj) -> [obj[key], JSON.stringify obj]).stream()
+
+    [have_join_key, dont_have_join_key] = partition validated, ([key, obj]) -> key?
 
     streams.push _(dont_have_join_key).stream()
       # The other stream gets stringified and parsed since it goes to disk - do so here as
       # well for consistency
-      .map((obj) -> JSON.stringify obj)
-      .map((obj) -> JSON.parse obj)
+      .map(([key, obj]) -> JSON.parse obj)
       # Objects without a join key can't pair with anything, so we only want to keep them if
       # we are keeping objects that don't pair
       .filter((obj) -> options.type is 'full' or stream_type is options.type)
