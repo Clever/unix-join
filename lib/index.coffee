@@ -44,62 +44,56 @@ module.exports = (left, right, options={}) ->
 
   out = new PassThrough objectMode: true
 
-  async.map(
-    [[left, 'left'], [right, 'right']]
-    ([stream, stream_type], cb_m) ->
-      key = options.on[stream_type]
-      file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
-      validated = _(stream).stream().assert(_.isObject, 'received non-object in stream').stream()
-      [have_join_key, dont_have_join_key] = partition validated, (obj) -> obj[key]?
-      async.parallel [
-        (cb_p) ->
-          _(dont_have_join_key).stream()
-            # The other stream gets stringified and parsed since it goes to disk - do so here as
-            # well for consistency
-            .map((obj) -> JSON.stringify obj)
-            .map((obj) -> JSON.parse obj)
-            # Objects without a join key can't pair with anything, so we only want to keep them if
-            # we are keeping objects that don't pair
-            .filter((obj) -> options.type is 'full' or stream_type is options.type)
-            .map((obj) -> if stream_type is 'left' then [obj, null] else [null, obj])
-            # Don't just pipe into out because we also pipe into out later and node streams don't
-            # handle multiple sources for a stream very well. See understream.combine for how it
-            # would need to be handled if we wanted to do it (which we don't because it adds
-            # unnecessary complexity)
-            .each((obj) -> out.push obj)
-            .run (err) -> cb_p err
-        (cb_p) ->
-          _(have_join_key).stream()
-            .map((obj, cb) -> setImmediate delimmed_key_and_obj, key, options.delim, obj, cb)
-            .writeFile(file_name)
-            .run (err) -> cb_p err
-      ], (err) ->
-        return cb_m err if err
-        cb_m null, file_name
+  file_names = []
+  streams = []
+  _([[left, 'left'], [right, 'right']]).each ([stream, stream_type]) ->
+    key = options.on[stream_type]
+    file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
+    validated = _(stream).stream().assert(_.isObject, 'received non-object in stream').stream()
+    [have_join_key, dont_have_join_key] = partition validated, (obj) -> obj[key]?
 
-    (err, file_names) ->
-      return out.emit 'error', err if err
+    streams.push _(dont_have_join_key).stream()
+      # The other stream gets stringified and parsed since it goes to disk - do so here as
+      # well for consistency
+      .map((obj) -> JSON.stringify obj)
+      .map((obj) -> JSON.parse obj)
+      # Objects without a join key can't pair with anything, so we only want to keep them if
+      # we are keeping objects that don't pair
+      .filter((obj) -> options.type is 'full' or stream_type is options.type)
+      .map((obj) -> if stream_type is 'left' then [obj, null] else [null, obj])
+      # Don't just pipe into out because we also pipe into out later and node streams don't
+      # handle multiple sources for a stream very well. See understream.combine for how it
+      # would need to be handled if we wanted to do it (which we don't because it adds
+      # unnecessary complexity)
+      .each (obj) -> out.push obj
 
-      spawn_opts = [
-        '-o', '1.2,2.2'     # Display only the stringified objects
-        '-e', 'null'        # Replace any missing data fields with null
-        '-1', '1'           # Join the first field from the left file...
-        '-2', '1'           # ...to the first field from the right file
-        '-t', options.delim # Use delim as the delimiter in input and output
-      ]
-      spawn_opts.push '-a1' if options.type in ['left', 'full'] # Keep unpaired lines from left
-      spawn_opts.push '-a2' if options.type in ['right', 'full'] # Keep unpaired lines from right
-      spawn_opts.push file_names... # Files to join
+    streams.push _(have_join_key).stream()
+      .map((obj, cb) -> setImmediate delimmed_key_and_obj, key, options.delim, obj, cb)
+      .writeFile file_name
 
-      _.stream()
-        .spawn('join', spawn_opts)
-        .split('\n')
-        .filter((line) -> line) # Filter out trailing newline
-        .map((line) -> line.split '\t') # Split out left and right into a pair
-        .map((line) -> _(line).map JSON.parse) # Parse each object in the pair
-        .pipe(out)
-        .run (err) ->
-          async.each file_names, rimraf, -> # Swallow errors from deleting files
-          out.emit 'error', err if err
-  )
+    file_names.push file_name
+
+  async.each streams, ((stream, cb_e) -> stream.run cb_e), (err) ->
+    return out.emit 'error', err if err
+    spawn_opts = [
+      '-o', '1.2,2.2'     # Display only the stringified objects
+      '-e', 'null'        # Replace any missing data fields with null
+      '-1', '1'           # Join the first field from the left file...
+      '-2', '1'           # ...to the first field from the right file
+      '-t', options.delim # Use delim as the delimiter in input and output
+    ]
+    spawn_opts.push '-a1' if options.type in ['left', 'full'] # Keep unpaired lines from left
+    spawn_opts.push '-a2' if options.type in ['right', 'full'] # Keep unpaired lines from right
+    spawn_opts.push file_names... # Files to join
+
+    _.stream()
+      .spawn('join', spawn_opts)
+      .split('\n')
+      .filter((line) -> line) # Filter out trailing newline
+      .map((line) -> line.split '\t') # Split out left and right into a pair
+      .map((line) -> _(line).map JSON.parse) # Parse each object in the pair
+      .pipe(out)
+      .run (err) ->
+        async.each file_names, rimraf, -> # Swallow errors from deleting files
+        out.emit 'error', err if err
   out
