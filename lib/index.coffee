@@ -46,8 +46,8 @@ module.exports = (left, right, options={}) ->
 
   async.map(
     [[left, 'left'], [right, 'right']]
-    ([stream, type], cb_m) ->
-      key = options.on[type]
+    ([stream, stream_type], cb_m) ->
+      key = options.on[stream_type]
       file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
       [have_join_key, dont_have_join_key] = partition stream, (obj) -> obj[key]?
       async.parallel [
@@ -60,8 +60,8 @@ module.exports = (left, right, options={}) ->
             .map((obj) -> JSON.parse obj)
             # Objects without a join key can't pair with anything, so we only want to keep them if
             # we are keeping objects that don't pair
-            .filter((obj) -> options.type is 'full' or type is options.type)
-            .map((obj) -> if type is 'left' then [obj, null] else [null, obj])
+            .filter((obj) -> options.type is 'full' or stream_type is options.type)
+            .map((obj) -> if stream_type is 'left' then [obj, null] else [null, obj])
             # Don't just pipe into out because we also pipe into out later and node streams don't
             # handle multiple sources for a stream very well. See understream.combine for how it
             # would need to be handled if we wanted to do it (which we don't because it adds
