@@ -148,6 +148,7 @@ sort_pairs = (pairs) ->
       .flatten().value().join ';'
 
 create_configs_from_base = (config) ->
+  _(config).defaults expected: [] # For error cases
   new_configs = [config]
   # If on is a string, also try the hash version of on to verify it's the same
   new_configs.push _.extend {}, config, {on: _.object config.on, config.on} if _(config.on).isString()
@@ -162,8 +163,7 @@ create_configs_from_base = (config) ->
         inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
         full: -> true
       _(type_spec).map (filter, type) ->
-        _.extend {}, new_config, {type},
-          if new_config.expected then {expected: _(new_config.expected).filter filter} else {}
+        _.extend {}, new_config, {type}, {expected: _(new_config.expected).filter filter}
     .flatten()
     .value()
 
@@ -171,14 +171,12 @@ describe 'joins', ->
   _(BASE_CONFIGS).each (base_config, i) ->
     _(create_configs_from_base base_config).each (config, j) ->
       test_num = "#{i + 1}.#{j + 1}"
-      if config.error
-        asserts = (err, results) -> assert.equal err?.message, config.error
-      else
-        asserts = (err, results) ->
-          assert.ifError err
-          assert.deepEqual sort_pairs(results), sort_pairs(config.expected)
       it "##{test_num} #{if config.error then 'fails' else 'joins'} #{JSON.stringify config}", (done) ->
         [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
         _(join left, right, _(config).pick 'on', 'type').stream().run (err, results) ->
-          asserts err, results
+          if config.error
+            assert.equal err?.message, config.error
+          else
+            assert.ifError err
+            assert.deepEqual sort_pairs(results), sort_pairs(config.expected)
           done()
