@@ -57,12 +57,8 @@ module.exports = (left, right, options={}) ->
       .each (obj, cb) -> out.write obj, cb
 
     streams.push _(have_join_key).stream()
-      .map ([key, obj], cb) ->
-        # This function is synchronous, but the only way that map exposes to return an error is via
-        # an asynchronous callback
-        return setImmediate cb, new Error "join key '#{field}' was not a primitive" if _(key).isObject()
-        hash = JSON.stringify key
-        setImmediate cb, null, hash + options.delim + obj + '\n'
+      .assert((([key, obj]) -> not _(key).isObject()), "join key '#{field}' was not a primitive")
+      .map(([key, obj]) -> JSON.stringify(key) + options.delim + obj + '\n')
       .writeFile file_name
 
     file_names.push file_name
