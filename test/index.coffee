@@ -148,13 +148,9 @@ sort_pairs = (pairs) ->
       .flatten().value().join ';'
 
 make_configs = (config) ->
+  mod_configs = [config]
   # If on is a string, also try the hash version of on to verify it's the same
-  if not _(config.on).isString()
-    mod_configs = [_(config).deepClone()]
-  else
-    mod_configs = [_(config).deepClone(), _(config).deepClone()]
-    mod_configs[1].on = _.object config.on, config.on
-  return mod_configs if config.type
+  mod_configs.push _.extend {}, config, {on: _.object config.on, config.on} if _(config.on).isString()
   # If type isn't specified, assume that the expected values are for type=full and create tests
   # for the other types by filtering it
   mod_configs = _(mod_configs).chain()
@@ -166,9 +162,8 @@ make_configs = (config) ->
         inner: (expected_pair) -> expected_pair[0]? and expected_pair[1]?
         full: -> true
       _(type_spec).map (filter, type) ->
-        new_config = _(mod_config).deepClone()
-        _(new_config).extend {type},
-          if new_config.expected then {expected: _(new_config.expected).filter filter} else {}
+        _.extend {}, mod_config, {type},
+          if mod_config.expected then {expected: _(mod_config.expected).filter filter} else {}
     .flatten()
     .value()
 
