@@ -9,27 +9,18 @@ understream   = require 'understream'
 _.mixin understream.exports()
 _.mixin require('underscore.string').exports()
 
-# This function is synchronous, but the only way that map exposes to return an error is via
-# an asynchronous callback
-delimmed_key_and_obj = (field, delim, [key, obj], cb) ->
-  return cb new Error "join key '#{field}' was not a primitive" if _(key).isObject()
-  hash = JSON.stringify key
-  cb null, hash + delim + obj + '\n'
-
 negate = (predicate) -> (args...) -> not predicate args...
-
 partition = (stream, predicate) ->
   [_.stream(stream).filter(predicate).stream(),
    _.stream(stream).filter(negate predicate).stream()]
 
-understream.mixin fs.createWriteStream, 'writeFile', true
 understream.mixin (test, msg) ->
-  _.stream()
-    .each (obj, cb) ->
-      return cb() if test obj
-      cb new Error msg
-    .stream()
+  _.stream().each (obj, cb) ->
+    return setImmediate cb if test obj
+    setImmediate cb, new Error msg
+  .stream()
 , 'assert', true
+understream.mixin fs.createWriteStream, 'writeFile', true
 
 # join reference: http://www.albany.edu/~ig4895/join.htm
 module.exports = (left, right, options={}) ->
@@ -45,10 +36,10 @@ module.exports = (left, right, options={}) ->
   file_names = []
   streams = []
   _([[left, 'left'], [right, 'right']]).each ([stream, stream_type]) ->
-    key = options.on[stream_type]
+    field = options.on[stream_type]
     file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
     validated = _(stream).stream().assert(_.isObject, 'received non-object in stream')
-      .map((obj) -> [obj[key], JSON.stringify obj]).stream()
+      .map((obj) -> [obj[field], JSON.stringify obj]).stream()
 
     [have_join_key, dont_have_join_key] = partition validated, ([key, obj]) -> key?
 
@@ -66,7 +57,12 @@ module.exports = (left, right, options={}) ->
       .each (obj) -> head.push obj
 
     streams.push _(have_join_key).stream()
-      .map((obj, cb) -> setImmediate delimmed_key_and_obj, key, options.delim, obj, cb)
+      .map ([key, obj], cb) ->
+        # This function is synchronous, but the only way that map exposes to return an error is via
+        # an asynchronous callback
+        return setImmediate cb, new Error "join key '#{field}' was not a primitive" if _(key).isObject()
+        hash = JSON.stringify key
+        setImmediate cb, null, hash + options.delim + obj + '\n'
       .writeFile file_name
 
     file_names.push file_name
