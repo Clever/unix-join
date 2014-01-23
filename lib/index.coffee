@@ -5,22 +5,21 @@ os            = require 'os'
 path          = require 'path'
 {PassThrough} = require 'stream'
 rimraf        = require 'rimraf'
-understream   = require 'understream'
-_.mixin understream.exports()
+Understream   = require 'understream'
 _.mixin require('underscore.string').exports()
 
 negate = (predicate) -> (args...) -> not predicate args...
 partition = (stream, predicate) ->
-  [_.stream(stream).filter(predicate).stream(),
-   _.stream(stream).filter(negate predicate).stream()]
+  [new Understream(stream).filter(predicate).stream(),
+   new Understream(stream).filter(negate predicate).stream()]
 
-understream.mixin (test, msg) ->
-  _.stream().each (obj, cb) ->
+Understream.mixin (test, msg) ->
+  new Understream().each (obj, cb) ->
     return setImmediate cb if test obj
     setImmediate cb, new Error msg
   .stream()
 , 'assert', true
-understream.mixin fs.createWriteStream, 'writeFile', true
+Understream.mixin fs.createWriteStream, 'writeFile', true
 
 # join reference: http://www.albany.edu/~ig4895/join.htm
 module.exports = (left, right, options={}) ->
@@ -32,18 +31,18 @@ module.exports = (left, right, options={}) ->
   join_keys = if _(options.on).isObject() then _(options.on).pairs()[0] else [options.on, options.on]
   options.on = _.object ['left', 'right'], join_keys
 
-  out = _.stream().map((line) -> _(line).map JSON.parse).stream() # Parse each object in the pair
+  out = new Understream().map((line) -> _(line).map JSON.parse).stream() # Parse each object in the pair
   file_names = []
   streams = []
   _([[left, 'left'], [right, 'right']]).each ([stream, stream_type]) ->
     field = options.on[stream_type]
     file_name = path.join os.tmpdir(), "#{Date.now()}'-'#{Math.random().toString().split('.')[1]}.json"
-    validated = _(stream).stream().assert(_.isObject, 'received non-object in stream')
+    validated = new Understream(stream).assert(_.isObject, 'received non-object in stream')
       .map((obj) -> [obj[field], JSON.stringify obj]).stream()
 
     [have_join_key, dont_have_join_key] = partition validated, ([key, obj]) -> key?
 
-    streams.push _(dont_have_join_key).stream()
+    streams.push new Understream(dont_have_join_key)
       .map(([key, obj]) -> obj)
       # Objects without a join key can't pair with anything, so we only want to keep them if
       # we are keeping objects that don't pair
@@ -51,12 +50,12 @@ module.exports = (left, right, options={}) ->
       # The string null gets turned into actual null later when these are parsed
       .map((obj) -> if stream_type is 'left' then [obj, 'null'] else ['null', obj])
       # Don't just pipe into out because we also pipe into out later and node streams don't
-      # handle multiple sources for a stream very well. See understream.combine for how it
+      # handle multiple sources for a stream very well. See Understream.combine for how it
       # would need to be handled if we wanted to do it (which we don't because it adds
       # unnecessary complexity)
       .each (obj, cb) -> out.write obj, cb
 
-    streams.push _(have_join_key).stream()
+    streams.push new Understream(have_join_key)
       .assert((([key, obj]) -> not _(key).isObject()), "join key '#{field}' was not a primitive")
       .map(([key, obj]) -> JSON.stringify(key) + options.delim + obj + '\n')
       .writeFile file_name
@@ -76,7 +75,7 @@ module.exports = (left, right, options={}) ->
     spawn_opts.push '-a2' if options.type in ['right', 'full'] # Keep unpaired lines from right
     spawn_opts.push file_names... # Files to join
 
-    _.stream()
+    new Understream()
       .spawn('join', spawn_opts)
       .split('\n')
       .filter((line) -> line) # Filter out trailing newline

@@ -1,8 +1,7 @@
 _           = require 'underscore'
 assert      = require 'assert'
-understream = require 'understream'
+Understream = require 'understream'
 join        = require '../'
-_.mixin understream.exports()
 _.mixin require 'underscore.deep'
 
 BASE_LEFT = ({a: i, b: i + 1} for i in [1..3])
@@ -172,8 +171,8 @@ describe 'joins', ->
     _(create_configs_from_base base_config).each (config, j) ->
       test_num = "#{i + 1}.#{j + 1}"
       it "##{test_num} #{if config.error then 'fails' else 'joins'} #{JSON.stringify config}", (done) ->
-        [left, right] = _([config.left, config.right]).map (arr) -> _(arr).stream().stream()
-        _(join left, right, _(config).pick 'on', 'type').stream().run (err, results) ->
+        [left, right] = _([config.left, config.right]).map (arr) -> new Understream(arr).stream()
+        new Understream(join left, right, _(config).pick 'on', 'type').run (err, results) ->
           if config.error
             assert.equal err?.message, config.error
           else
