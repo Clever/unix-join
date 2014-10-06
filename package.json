@@ -1,6 +1,6 @@
 {
   "name": "unix-join",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Join streams of JSON objects using the unix join command. This allows joining of very large data sets in a stream interface that Node normally can't handle due to memory constraints.",
   "main": "index.js",
   "directories": {
@@ -10,7 +10,7 @@
     "async": "~0.2.9",
     "rimraf": "~2.2.5",
     "underscore": "~1.5.2",
-    "understream": "~0.8.7",
+    "understream": "^0.10.9",
     "underscore.string": "~2.3.3"
   },
   "devDependencies": {
