@@ -10,7 +10,7 @@
     "async": "~0.2.9",
     "rimraf": "~2.2.5",
     "underscore": "~1.5.2",
-    "understream": "~0.8.7",
+    "understream": "^0.10.9",
     "underscore.string": "~2.3.3"
   },
   "devDependencies": {
