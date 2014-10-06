@@ -29,5 +29,8 @@
   "license": "BSD-2-Clause",
   "bugs": {
     "url": "https://github.com/Clever/unix-join/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   }
 }
