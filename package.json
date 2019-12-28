@@ -14,8 +14,8 @@
     "underscore.string": "~2.3.3"
   },
   "devDependencies": {
-    "mocha": "~1.17.0",
     "coffee-script": "~1.6.3",
+    "mocha": "^2.5.3",
     "underscore.deep": "~0.0.5"
   },
   "scripts": {
